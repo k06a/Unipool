@@ -150,7 +150,7 @@ contract('Unipool', function ([_, wallet1, wallet2, wallet3, wallet4]) {
             expect(await this.pool.earned(wallet2)).to.be.bignumber.almostEqualDiv1e18(web3.utils.toWei('78000'));
             expect(await this.pool.earned(wallet3)).to.be.bignumber.almostEqualDiv1e18(web3.utils.toWei('40000'));
 
-            await this.pool.withdrawAll({ from: wallet2 });
+            await this.pool.exit({ from: wallet2 });
 
             await timeIncreaseTo(this.started.add(time.duration.weeks(3)));
 
