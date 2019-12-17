@@ -162,7 +162,7 @@ contract('Unipool', function ([_, wallet1, wallet2, wallet3, wallet4]) {
             expect(await this.pool.earned(wallet3)).to.be.bignumber.almostEqualDiv1e18(web3.utils.toWei('100000'));
         });
 
-        it('Noitfy Reward Amount from mocked distribution to 10,000', async function () {
+        it('Notify Reward Amount from mocked distribution to 10,000', async function () {
             expect(await this.pool.rewardPerToken()).to.be.bignumber.almostEqualDiv1e18('0');
             expect(await this.pool.balanceOf(wallet1)).to.be.bignumber.equal('0');
             expect(await this.pool.balanceOf(wallet2)).to.be.bignumber.equal('0');
