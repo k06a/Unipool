@@ -1,13 +1,13 @@
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "./IRewardDistributionRecipient.sol";
 
 
-contract Unipool is ERC20, ERC20Detailed("Unipool", "SNX-UNP", 18), Ownable {
+contract Unipool is ERC20, ERC20Detailed("Unipool", "SNX-UNP", 18), IRewardDistributionRecipient {
 
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -76,7 +76,8 @@ contract Unipool is ERC20, ERC20Detailed("Unipool", "SNX-UNP", 18), Ownable {
         }
     }
 
-    function setRewardRate(uint256 newRewardRate) public onlyOwner updateRewardPerToken {
+    function notifyRewardAmount(uint256 amount) external onlyRewardDistribution updateRewardPerToken {
+        uint newRewardRate = amount / 7 days;
         emit RewardRateUpdated(newRewardRate, rewardRate);
         rewardRate = newRewardRate;
     }
