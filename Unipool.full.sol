@@ -1,4 +1,36 @@
 
+// File: @openzeppelin/contracts/math/Math.sol
+
+pragma solidity ^0.5.0;
+
+/**
+ * @dev Standard math utilities missing in the Solidity language.
+ */
+library Math {
+    /**
+     * @dev Returns the largest of two numbers.
+     */
+    function max(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a >= b ? a : b;
+    }
+
+    /**
+     * @dev Returns the smallest of two numbers.
+     */
+    function min(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a < b ? a : b;
+    }
+
+    /**
+     * @dev Returns the average of two numbers. The result is rounded towards
+     * zero.
+     */
+    function average(uint256 a, uint256 b) internal pure returns (uint256) {
+        // (a + b) / 2 can overflow, so we distribute
+        return (a / 2) + (b / 2) + ((a % 2 + b % 2) / 2);
+    }
+}
+
 // File: @openzeppelin/contracts/math/SafeMath.sol
 
 pragma solidity ^0.5.0;
@@ -185,6 +217,84 @@ contract Context {
     function _msgData() internal view returns (bytes memory) {
         this; // silence state mutability warning without generating bytecode - see https://github.com/ethereum/solidity/issues/2691
         return msg.data;
+    }
+}
+
+// File: @openzeppelin/contracts/ownership/Ownable.sol
+
+pragma solidity ^0.5.0;
+
+/**
+ * @dev Contract module which provides a basic access control mechanism, where
+ * there is an account (an owner) that can be granted exclusive access to
+ * specific functions.
+ *
+ * This module is used through inheritance. It will make available the modifier
+ * `onlyOwner`, which can be applied to your functions to restrict their use to
+ * the owner.
+ */
+contract Ownable is Context {
+    address private _owner;
+
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    /**
+     * @dev Initializes the contract setting the deployer as the initial owner.
+     */
+    constructor () internal {
+        _owner = _msgSender();
+        emit OwnershipTransferred(address(0), _owner);
+    }
+
+    /**
+     * @dev Returns the address of the current owner.
+     */
+    function owner() public view returns (address) {
+        return _owner;
+    }
+
+    /**
+     * @dev Throws if called by any account other than the owner.
+     */
+    modifier onlyOwner() {
+        require(isOwner(), "Ownable: caller is not the owner");
+        _;
+    }
+
+    /**
+     * @dev Returns true if the caller is the current owner.
+     */
+    function isOwner() public view returns (bool) {
+        return _msgSender() == _owner;
+    }
+
+    /**
+     * @dev Leaves the contract without owner. It will not be possible to call
+     * `onlyOwner` functions anymore. Can only be called by the current owner.
+     *
+     * NOTE: Renouncing ownership will leave the contract without an owner,
+     * thereby removing any functionality that is only available to the owner.
+     */
+    function renounceOwnership() public onlyOwner {
+        emit OwnershipTransferred(_owner, address(0));
+        _owner = address(0);
+    }
+
+    /**
+     * @dev Transfers ownership of the contract to a new account (`newOwner`).
+     * Can only be called by the current owner.
+     */
+    function transferOwnership(address newOwner) public onlyOwner {
+        _transferOwnership(newOwner);
+    }
+
+    /**
+     * @dev Transfers ownership of the contract to a new account (`newOwner`).
+     */
+    function _transferOwnership(address newOwner) internal {
+        require(newOwner != address(0), "Ownable: new owner is the zero address");
+        emit OwnershipTransferred(_owner, newOwner);
+        _owner = newOwner;
     }
 }
 
@@ -712,66 +822,90 @@ pragma solidity ^0.5.0;
 
 
 
-contract Unipool is ERC20, ERC20Detailed("Unipool", "SNX-UNP", 18) {
+
+
+contract Unipool is ERC20, ERC20Detailed("Unipool", "SNX-UNP", 18), Ownable {
 
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    uint256 constant public REWARD_RATE = uint256(72000e18) / 7 days;
     IERC20 public snx = IERC20(0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F);
     IERC20 public uni = IERC20(0xe9Cf7887b93150D4F2Da7dFc6D502B216438F244);
 
+    uint256 public periodFinish = 0;
+    uint256 public rewardRate = 0;
     uint256 public lastUpdateTime;
     uint256 public rewardPerTokenStored;
     mapping(address => uint256) public userRewardPerTokenPaid;
+    mapping(address => uint256) public rewards;
 
+    event RewardAdded(uint256 reward, uint256 duration);
     event Staked(address indexed user, uint256 amount);
-    event Withdrawed(address indexed user, uint256 amount);
+    event Withdrawn(address indexed user, uint256 amount);
     event RewardPaid(address indexed user, uint256 reward);
 
     modifier updateRewardPerToken {
-        getReward();
+        rewardPerTokenStored = rewardPerToken();
+        lastUpdateTime = lastTimeRewardApplicable();
         _;
+    }
+
+    modifier updateRewardOf(address account) {
+        rewards[account] = earned(account);
+        userRewardPerTokenPaid[msg.sender] = rewardPerToken();
+        _;
+    }
+
+    function lastTimeRewardApplicable() public view returns(uint256) {
+        return Math.min(block.timestamp, periodFinish);
     }
 
     function rewardPerToken() public view returns(uint256) {
         return rewardPerTokenStored.add(
-            totalSupply() == 0 ? 0 : (now.sub(lastUpdateTime)).mul(REWARD_RATE).mul(1e18).div(totalSupply())
+            totalSupply() == 0 ? 0 : (lastTimeRewardApplicable().sub(lastUpdateTime)).mul(rewardRate).mul(1e18).div(totalSupply())
         );
     }
 
     function earned(address account) public view returns(uint256) {
         return balanceOf(account).mul(
             rewardPerToken().sub(userRewardPerTokenPaid[account])
-        ).div(1e18);
+        ).div(1e18).add(rewards[account]);
     }
 
-    function stake(uint256 amount) public updateRewardPerToken {
+    function stake(uint256 amount) public updateRewardPerToken updateRewardOf(msg.sender) {
         _mint(msg.sender, amount);
         uni.safeTransferFrom(msg.sender, address(this), amount);
         emit Staked(msg.sender, amount);
     }
 
-    function withdraw(uint256 amount) public updateRewardPerToken {
+    function withdraw(uint256 amount) public updateRewardPerToken updateRewardOf(msg.sender) {
         _burn(msg.sender, amount);
         uni.safeTransfer(msg.sender, amount);
-        emit Withdrawed(msg.sender, amount);
+        emit Withdrawn(msg.sender, amount);
     }
 
-    function withdrawAll() public {
+    function exit() public {
         withdraw(balanceOf(msg.sender));
+        getReward();
     }
 
-    function getReward() public {
+    function getReward() public updateRewardPerToken updateRewardOf(msg.sender) {
         uint256 reward = earned(msg.sender);
-
-        rewardPerTokenStored = rewardPerToken();
-        userRewardPerTokenPaid[msg.sender] = rewardPerTokenStored;
-        lastUpdateTime = now;
-
         if (reward > 0) {
+            rewards[msg.sender] = 0;
             snx.safeTransfer(msg.sender, reward);
             emit RewardPaid(msg.sender, reward);
         }
+    }
+
+    function notifyRewardAmount(uint256 reward, uint256 duration) public onlyOwner updateRewardPerToken {
+        require(block.timestamp >= periodFinish, "Wait until prev period finished");
+        periodFinish = block.timestamp.add(duration);
+        rewardRate = reward.div(duration);
+        emit RewardAdded(reward, duration);
+    }
+
+    function _transfer(address from, address to, uint256 amount) internal updateRewardOf(from) updateRewardOf(to) {
+        super._transfer(from, to, amount);
     }
 }

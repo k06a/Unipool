@@ -1,5 +1,6 @@
 pragma solidity ^0.5.0;
 
+import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -15,20 +16,21 @@ contract Unipool is ERC20, ERC20Detailed("Unipool", "SNX-UNP", 18), Ownable {
     IERC20 public snx = IERC20(0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F);
     IERC20 public uni = IERC20(0xe9Cf7887b93150D4F2Da7dFc6D502B216438F244);
 
-    uint256 public rewardRate = uint256(72000e18) / 7 days;
+    uint256 public periodFinish = 0;
+    uint256 public rewardRate = 0;
     uint256 public lastUpdateTime;
     uint256 public rewardPerTokenStored;
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
 
-    event RewardRateUpdated(uint256 newRewardRate, uint256 rewardRate);
+    event RewardAdded(uint256 reward, uint256 duration);
     event Staked(address indexed user, uint256 amount);
-    event Withdrawed(address indexed user, uint256 amount);
+    event Withdrawn(address indexed user, uint256 amount);
     event RewardPaid(address indexed user, uint256 reward);
 
     modifier updateRewardPerToken {
         rewardPerTokenStored = rewardPerToken();
-        lastUpdateTime = now;
+        lastUpdateTime = lastTimeRewardApplicable();
         _;
     }
 
@@ -38,9 +40,13 @@ contract Unipool is ERC20, ERC20Detailed("Unipool", "SNX-UNP", 18), Ownable {
         _;
     }
 
+    function lastTimeRewardApplicable() public view returns(uint256) {
+        return Math.min(block.timestamp, periodFinish);
+    }
+
     function rewardPerToken() public view returns(uint256) {
         return rewardPerTokenStored.add(
-            totalSupply() == 0 ? 0 : (now.sub(lastUpdateTime)).mul(rewardRate).mul(1e18).div(totalSupply())
+            totalSupply() == 0 ? 0 : (lastTimeRewardApplicable().sub(lastUpdateTime)).mul(rewardRate).mul(1e18).div(totalSupply())
         );
     }
 
@@ -59,7 +65,7 @@ contract Unipool is ERC20, ERC20Detailed("Unipool", "SNX-UNP", 18), Ownable {
     function withdraw(uint256 amount) public updateRewardPerToken updateRewardOf(msg.sender) {
         _burn(msg.sender, amount);
         uni.safeTransfer(msg.sender, amount);
-        emit Withdrawed(msg.sender, amount);
+        emit Withdrawn(msg.sender, amount);
     }
 
     function exit() public {
@@ -76,9 +82,11 @@ contract Unipool is ERC20, ERC20Detailed("Unipool", "SNX-UNP", 18), Ownable {
         }
     }
 
-    function setRewardRate(uint256 newRewardRate) public onlyOwner updateRewardPerToken {
-        emit RewardRateUpdated(newRewardRate, rewardRate);
-        rewardRate = newRewardRate;
+    function notifyRewardAmount(uint256 reward, uint256 duration) public onlyOwner updateRewardPerToken {
+        require(block.timestamp >= periodFinish, "Wait until prev period finished");
+        periodFinish = block.timestamp.add(duration);
+        rewardRate = reward.div(duration);
+        emit RewardAdded(reward, duration);
     }
 
     function _transfer(address from, address to, uint256 amount) internal updateRewardOf(from) updateRewardOf(to) {
