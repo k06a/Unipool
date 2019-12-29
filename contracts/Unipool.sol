@@ -7,13 +7,29 @@ import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 
-contract Unipool is ERC20, ERC20Detailed("Unipool", "SNX-UNP", 18), Ownable {
+contract LPTokenWrapper is ERC20 {
 
-    using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    IERC20 public snx = IERC20(0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F);
     IERC20 public uni = IERC20(0xe9Cf7887b93150D4F2Da7dFc6D502B216438F244);
+
+    function _mint(address account, uint256 amount) internal {
+        super._mint(account, amount);
+        uni.safeTransferFrom(account, address(this), amount);
+    }
+
+    function _burn(address account, uint256 amount) internal {
+        super._burn(account, amount);
+        uni.safeTransfer(account, amount);
+    }
+}
+
+
+contract Unipool is LPTokenWrapper, ERC20Detailed("Unipool", "SNX-UNP", 18), Ownable {
+
+    using SafeMath for uint256;
+
+    IERC20 public snx = IERC20(0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F);
 
     uint256 public rewardRate = uint256(72000e18) / 7 days;
     uint256 public lastUpdateTime;
@@ -52,13 +68,11 @@ contract Unipool is ERC20, ERC20Detailed("Unipool", "SNX-UNP", 18), Ownable {
 
     function stake(uint256 amount) public updateRewardPerToken updateRewardOf(msg.sender) {
         _mint(msg.sender, amount);
-        uni.safeTransferFrom(msg.sender, address(this), amount);
         emit Staked(msg.sender, amount);
     }
 
     function withdraw(uint256 amount) public updateRewardPerToken updateRewardOf(msg.sender) {
         _burn(msg.sender, amount);
-        uni.safeTransfer(msg.sender, amount);
         emit Withdrawed(msg.sender, amount);
     }
 
