@@ -81,7 +81,7 @@ contract Unipool is ERC20, ERC20Detailed("Unipool", "SNX-UNP", 18), Ownable {
         rewardRate = newRewardRate;
     }
 
-    function _transfer(address from, address to, uint256 amount) internal updateRewardOf(from) updateRewardOf(to) {
-        super._transfer(from, to, amount);
+    function _transfer(address from, address to, uint256 amount) internal {
+        revert("Transfers are not allowed");
     }
 }
