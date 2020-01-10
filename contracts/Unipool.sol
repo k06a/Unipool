@@ -1,19 +1,46 @@
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
+import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "./IRewardDistributionRecipient.sol";
 
 
-contract Unipool is ERC20, ERC20Detailed("Unipool", "SNX-UNP", 18), IRewardDistributionRecipient {
+contract LPTokenWrapper {
 
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    IERC20 public snx = IERC20(0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F);
     IERC20 public uni = IERC20(0xe9Cf7887b93150D4F2Da7dFc6D502B216438F244);
+
+    uint256 private _totalSupply;
+    mapping(address => uint256) private _balances;
+
+    function totalSupply() public view returns(uint256) {
+        return _totalSupply;
+    }
+
+    function balanceOf(address account) public view returns(uint256) {
+        return _balances[account];
+    }
+
+    function stake(uint256 amount) public {
+        _totalSupply = _totalSupply.add(amount);
+        _balances[msg.sender] = _balances[msg.sender].add(amount);
+        uni.safeTransferFrom(msg.sender, address(this), amount);
+    }
+
+    function withdraw(uint256 amount) public {
+        _totalSupply = _totalSupply.sub(amount);
+        _balances[msg.sender] = _balances[msg.sender].sub(amount);
+        uni.safeTransfer(msg.sender, amount);
+    }
+}
+
+
+contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
+
+    IERC20 public snx = IERC20(0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F);
 
     uint256 public rewardRate = uint256(72000e18) / 7 days;
     uint256 public lastUpdateTime;
@@ -26,15 +53,13 @@ contract Unipool is ERC20, ERC20Detailed("Unipool", "SNX-UNP", 18), IRewardDistr
     event Withdrawed(address indexed user, uint256 amount);
     event RewardPaid(address indexed user, uint256 reward);
 
-    modifier updateRewardPerToken {
+    modifier updateReward(address account) {
         rewardPerTokenStored = rewardPerToken();
         lastUpdateTime = now;
-        _;
-    }
-
-    modifier updateRewardOf(address account) {
-        rewards[account] = earned(account);
-        userRewardPerTokenPaid[msg.sender] = rewardPerToken();
+        if (account != address(0)) {
+            rewards[account] = earned(account);
+            userRewardPerTokenPaid[account] = rewardPerTokenStored;
+        }
         _;
     }
 
@@ -50,15 +75,13 @@ contract Unipool is ERC20, ERC20Detailed("Unipool", "SNX-UNP", 18), IRewardDistr
         ).div(1e18).add(rewards[account]);
     }
 
-    function stake(uint256 amount) public updateRewardPerToken updateRewardOf(msg.sender) {
-        _mint(msg.sender, amount);
-        uni.safeTransferFrom(msg.sender, address(this), amount);
+    function stake(uint256 amount) public updateReward(msg.sender) {
+        super.stake(amount);
         emit Staked(msg.sender, amount);
     }
 
-    function withdraw(uint256 amount) public updateRewardPerToken updateRewardOf(msg.sender) {
-        _burn(msg.sender, amount);
-        uni.safeTransfer(msg.sender, amount);
+    function withdraw(uint256 amount) public updateReward(msg.sender) {
+        super.withdraw(amount);
         emit Withdrawed(msg.sender, amount);
     }
 
@@ -67,7 +90,7 @@ contract Unipool is ERC20, ERC20Detailed("Unipool", "SNX-UNP", 18), IRewardDistr
         getReward();
     }
 
-    function getReward() public updateRewardPerToken updateRewardOf(msg.sender) {
+    function getReward() public updateReward(msg.sender) {
         uint256 reward = earned(msg.sender);
         if (reward > 0) {
             rewards[msg.sender] = 0;
@@ -76,13 +99,9 @@ contract Unipool is ERC20, ERC20Detailed("Unipool", "SNX-UNP", 18), IRewardDistr
         }
     }
 
-    function notifyRewardAmount(uint256 amount) external onlyRewardDistribution updateRewardPerToken {
+    function notifyRewardAmount(uint256 amount) public onlyRewardDistribution updateReward(address(0)) {
         uint newRewardRate = amount / 7 days;
         emit RewardRateUpdated(newRewardRate, rewardRate);
         rewardRate = newRewardRate;
-    }
-
-    function _transfer(address from, address to, uint256 amount) internal updateRewardOf(from) updateRewardOf(to) {
-        super._transfer(from, to, amount);
     }
 }
