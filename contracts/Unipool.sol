@@ -3,6 +3,7 @@ pragma solidity ^0.5.0;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "./IRewardDistributionRecipient.sol";
 
 
 contract LPTokenWrapper {
@@ -37,7 +38,7 @@ contract LPTokenWrapper {
 }
 
 
-contract Unipool is LPTokenWrapper, Ownable {
+contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
 
     IERC20 public snx = IERC20(0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F);
 
@@ -98,7 +99,8 @@ contract Unipool is LPTokenWrapper, Ownable {
         }
     }
 
-    function setRewardRate(uint256 newRewardRate) public onlyOwner updateReward(address(0)) {
+    function notifyRewardAmount(uint256 amount) public onlyRewardDistribution updateReward(address(0)) {
+        uint newRewardRate = amount / 7 days;
         emit RewardRateUpdated(newRewardRate, rewardRate);
         rewardRate = newRewardRate;
     }
