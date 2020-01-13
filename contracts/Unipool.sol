@@ -105,6 +105,7 @@ contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
         }
     }
 
+    // Duration is the time diff from (now  - when snx rewards will be mintable again) to handle slippage in minting
     function notifyRewardAmount(uint256 reward, uint256 duration) public onlyRewardDistribution updateReward(address(0)) {
         require(block.timestamp >= periodFinish, "Wait until prev period finished");
         periodFinish = block.timestamp.add(duration);
