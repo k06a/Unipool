@@ -1,4 +1,36 @@
 
+// File: @openzeppelin/contracts/math/Math.sol
+
+pragma solidity ^0.5.0;
+
+/**
+ * @dev Standard math utilities missing in the Solidity language.
+ */
+library Math {
+    /**
+     * @dev Returns the largest of two numbers.
+     */
+    function max(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a >= b ? a : b;
+    }
+
+    /**
+     * @dev Returns the smallest of two numbers.
+     */
+    function min(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a < b ? a : b;
+    }
+
+    /**
+     * @dev Returns the average of two numbers. The result is rounded towards
+     * zero.
+     */
+    function average(uint256 a, uint256 b) internal pure returns (uint256) {
+        // (a + b) / 2 can overflow, so we distribute
+        return (a / 2) + (b / 2) + ((a % 2 + b % 2) / 2);
+    }
+}
+
 // File: @openzeppelin/contracts/math/SafeMath.sol
 
 pragma solidity ^0.5.0;
@@ -526,6 +558,7 @@ pragma solidity ^0.5.0;
 
 
 
+
 contract LPTokenWrapper {
 
     using SafeMath for uint256;
@@ -562,20 +595,21 @@ contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
 
     IERC20 public snx = IERC20(0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F);
 
-    uint256 public rewardRate = uint256(72000e18) / 7 days;
+    uint256 public periodFinish = 0;
+    uint256 public rewardRate = 0;
     uint256 public lastUpdateTime;
     uint256 public rewardPerTokenStored;
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
 
-    event RewardRateUpdated(uint256 newRewardRate, uint256 rewardRate);
+    event RewardAdded(uint256 reward, uint256 duration);
     event Staked(address indexed user, uint256 amount);
-    event Withdrawed(address indexed user, uint256 amount);
+    event Withdrawn(address indexed user, uint256 amount);
     event RewardPaid(address indexed user, uint256 reward);
 
     modifier updateReward(address account) {
         rewardPerTokenStored = rewardPerToken();
-        lastUpdateTime = now;
+        lastUpdateTime = lastTimeRewardApplicable();
         if (account != address(0)) {
             rewards[account] = earned(account);
             userRewardPerTokenPaid[account] = rewardPerTokenStored;
@@ -583,9 +617,13 @@ contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
         _;
     }
 
+    function lastTimeRewardApplicable() public view returns(uint256) {
+        return Math.min(block.timestamp, periodFinish);
+    }
+
     function rewardPerToken() public view returns(uint256) {
         return rewardPerTokenStored.add(
-            totalSupply() == 0 ? 0 : (now.sub(lastUpdateTime)).mul(rewardRate).mul(1e18).div(totalSupply())
+            totalSupply() == 0 ? 0 : (lastTimeRewardApplicable().sub(lastUpdateTime)).mul(rewardRate).mul(1e18).div(totalSupply())
         );
     }
 
@@ -602,7 +640,7 @@ contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
 
     function withdraw(uint256 amount) public updateReward(msg.sender) {
         super.withdraw(amount);
-        emit Withdrawed(msg.sender, amount);
+        emit Withdrawn(msg.sender, amount);
     }
 
     function exit() public {
@@ -619,9 +657,10 @@ contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
         }
     }
 
-    function notifyRewardAmount(uint256 amount) public onlyRewardDistribution updateReward(address(0)) {
-        uint newRewardRate = amount / 7 days;
-        emit RewardRateUpdated(newRewardRate, rewardRate);
-        rewardRate = newRewardRate;
+    function notifyRewardAmount(uint256 reward, uint256 duration) public onlyRewardDistribution updateReward(address(0)) {
+        require(block.timestamp >= periodFinish, "Wait until prev period finished");
+        periodFinish = block.timestamp.add(duration);
+        rewardRate = reward.div(duration);
+        emit RewardAdded(reward, duration);
     }
 }

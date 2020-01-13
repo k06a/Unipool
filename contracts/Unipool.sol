@@ -88,7 +88,7 @@ contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
 
     function withdraw(uint256 amount) public updateReward(msg.sender) {
         super.withdraw(amount);
-        emit Withdrawed(msg.sender, amount);
+        emit Withdrawn(msg.sender, amount);
     }
 
     function exit() public {
