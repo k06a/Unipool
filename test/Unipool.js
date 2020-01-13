@@ -62,6 +62,9 @@ contract('Unipool', function ([_, wallet1, wallet2, wallet3, wallet4]) {
 
             this.started = (await time.latest()).addn(10);
             await timeIncreaseTo(this.started);
+
+            // 72000 SNX per week for 3 weeks
+            await this.pool.notifyRewardAmount(web3.utils.toWei('216000'), 60*60*24*7*3);
         });
 
         it('Two stakers with the same stakes wait 1 w', async function () {
