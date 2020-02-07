@@ -74,7 +74,7 @@ contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
             return rewardPerTokenStored;
         }
         return rewardPerTokenStored.add(
-            lastTimeRewardApplicable().sub(lastUpdateTime)).mul(rewardRate).mul(1e18).div(totalSupply()
+            lastTimeRewardApplicable().sub(lastUpdateTime).mul(rewardRate).mul(1e18).div(totalSupply())
         );
     }
 
