@@ -626,7 +626,7 @@ contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
             return rewardPerTokenStored;
         }
         return rewardPerTokenStored.add(
-            lastTimeRewardApplicable().sub(lastUpdateTime)).mul(rewardRate).mul(1e18).div(totalSupply()
+            lastTimeRewardApplicable().sub(lastUpdateTime).mul(rewardRate).mul(1e18).div(totalSupply())
         );
     }
 
@@ -663,15 +663,14 @@ contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
     // Duration is the time diff from (now  - when snx rewards will be mintable again) to handle slippage in minting
     function notifyRewardAmount(uint256 reward, uint256 duration) external onlyRewardDistribution updateReward(address(0)) {
         if (block.timestamp >= periodFinish) {
-            periodFinish = block.timestamp.add(duration);
             rewardRate = reward.div(duration);
-            emit RewardAdded(reward, duration);
         } else {
             uint256 remaining = periodFinish.sub(block.timestamp);
             uint256 leftover = remaining.mul(rewardRate);
-            periodFinish = block.timestamp.add(duration);
             rewardRate = reward.add(leftover).div(duration);
-            emit RewardAdded(reward, duration);
         }
+        lastUpdateTime = block.timestamp;
+        periodFinish = block.timestamp.add(duration);
+        emit RewardAdded(reward, duration);
     }
 }
