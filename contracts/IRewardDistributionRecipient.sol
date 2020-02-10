@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/ownership/Ownable.sol";
 contract IRewardDistributionRecipient is Ownable {
     address rewardDistribution;
 
-    function notifyRewardAmount(uint256 reward, uint256 duration) external;
+    function notifyRewardAmount(uint256 reward) external;
 
     modifier onlyRewardDistribution() {
         require(_msgSender() == rewardDistribution, "Caller is not reward distribution");

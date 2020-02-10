@@ -43,6 +43,8 @@ contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
 
     IERC20 public snx = IERC20(0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F);
 
+    uint256 public constant DURATION = 7 days;
+
     uint256 public periodFinish = 0;
     uint256 public rewardRate = 0;
     uint256 public lastUpdateTime;
@@ -50,7 +52,7 @@ contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
 
-    event RewardAdded(uint256 reward, uint256 duration);
+    event RewardAdded(uint256 reward);
     event Staked(address indexed user, uint256 amount);
     event Withdrawn(address indexed user, uint256 amount);
     event RewardPaid(address indexed user, uint256 reward);
@@ -110,17 +112,16 @@ contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
         }
     }
 
-    // Duration is the time diff from (now  - when snx rewards will be mintable again) to handle slippage in minting
-    function notifyRewardAmount(uint256 reward, uint256 duration) external onlyRewardDistribution updateReward(address(0)) {
+    function notifyRewardAmount(uint256 reward) external onlyRewardDistribution updateReward(address(0)) {
         if (block.timestamp >= periodFinish) {
-            rewardRate = reward.div(duration);
+            rewardRate = reward.div(DURATION);
         } else {
             uint256 remaining = periodFinish.sub(block.timestamp);
             uint256 leftover = remaining.mul(rewardRate);
-            rewardRate = reward.add(leftover).div(duration);
+            rewardRate = reward.add(leftover).div(DURATION);
         }
         lastUpdateTime = block.timestamp;
-        periodFinish = block.timestamp.add(duration);
-        emit RewardAdded(reward, duration);
+        periodFinish = block.timestamp.add(DURATION);
+        emit RewardAdded(reward);
     }
 }
