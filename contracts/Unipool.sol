@@ -85,11 +85,13 @@ contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
     }
 
     function stake(uint256 amount) public updateReward(msg.sender) {
+        require(amount > 0, "Cannot stake 0");
         super.stake(amount);
         emit Staked(msg.sender, amount);
     }
 
     function withdraw(uint256 amount) public updateReward(msg.sender) {
+        require(amount > 0, "Cannot withdraw 0");
         super.withdraw(amount);
         emit Withdrawn(msg.sender, amount);
     }
