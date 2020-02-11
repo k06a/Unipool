@@ -6,22 +6,22 @@ import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "./IRewardDistributionRecipient.sol";
 
-
 contract LPTokenWrapper {
-
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    IERC20 public uni = IERC20(0xe9Cf7887b93150D4F2Da7dFc6D502B216438F244);
+    IERC20 public constant uni = IERC20(
+        0xe9Cf7887b93150D4F2Da7dFc6D502B216438F244
+    );
 
     uint256 private _totalSupply;
     mapping(address => uint256) private _balances;
 
-    function totalSupply() public view returns(uint256) {
+    function totalSupply() public view returns (uint256) {
         return _totalSupply;
     }
 
-    function balanceOf(address account) public view returns(uint256) {
+    function balanceOf(address account) public view returns (uint256) {
         return _balances[account];
     }
 
@@ -38,11 +38,10 @@ contract LPTokenWrapper {
     }
 }
 
-
 contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
-
-    IERC20 public snx = IERC20(0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F);
-
+    IERC20 public constant snx = IERC20(
+        0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F
+    );
     uint256 public constant DURATION = 7 days;
 
     uint256 public periodFinish = 0;
@@ -67,26 +66,33 @@ contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
         _;
     }
 
-    function lastTimeRewardApplicable() public view returns(uint256) {
+    function lastTimeRewardApplicable() public view returns (uint256) {
         return Math.min(block.timestamp, periodFinish);
     }
 
-    function rewardPerToken() public view returns(uint256) {
+    function rewardPerToken() public view returns (uint256) {
         if (totalSupply() == 0) {
             return rewardPerTokenStored;
         }
-        return rewardPerTokenStored.add(
-            lastTimeRewardApplicable().sub(lastUpdateTime).mul(rewardRate).mul(1e18).div(totalSupply())
-        );
+        return
+            rewardPerTokenStored.add(
+                lastTimeRewardApplicable()
+                    .sub(lastUpdateTime)
+                    .mul(rewardRate)
+                    .mul(1e18)
+                    .div(totalSupply())
+            );
     }
 
-    function earned(address account) public view returns(uint256) {
-        return balanceOf(account).mul(
-            rewardPerToken().sub(userRewardPerTokenPaid[account])
-        ).div(1e18).add(rewards[account]);
+    function earned(address account) public view returns (uint256) {
+        return
+            balanceOf(account)
+                .mul(rewardPerToken().sub(userRewardPerTokenPaid[account]))
+                .div(1e18)
+                .add(rewards[account]);
     }
 
-    function stake(uint256 amount) public updateReward(msg.sender) {
+    function stake(uint256 amount) external updateReward(msg.sender) {
         require(amount > 0, "Cannot stake 0");
         super.stake(amount);
         emit Staked(msg.sender, amount);
@@ -98,7 +104,7 @@ contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
         emit Withdrawn(msg.sender, amount);
     }
 
-    function exit() public {
+    function exit() external {
         withdraw(balanceOf(msg.sender));
         getReward();
     }
@@ -112,7 +118,11 @@ contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
         }
     }
 
-    function notifyRewardAmount(uint256 reward) external onlyRewardDistribution updateReward(address(0)) {
+    function notifyRewardAmount(uint256 reward)
+        external
+        onlyRewardDistribution
+        updateReward(address(0))
+    {
         if (block.timestamp >= periodFinish) {
             rewardRate = reward.div(DURATION);
         } else {
