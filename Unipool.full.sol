@@ -534,7 +534,7 @@ pragma solidity ^0.5.0;
 contract IRewardDistributionRecipient is Ownable {
     address rewardDistribution;
 
-    function notifyRewardAmount(uint256 reward, uint256 duration) external;
+    function notifyRewardAmount(uint256 reward) external;
 
     modifier onlyRewardDistribution() {
         require(_msgSender() == rewardDistribution, "Caller is not reward distribution");
@@ -558,9 +558,7 @@ pragma solidity ^0.5.0;
 
 
 
-
 contract LPTokenWrapper {
-
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -569,11 +567,11 @@ contract LPTokenWrapper {
     uint256 private _totalSupply;
     mapping(address => uint256) private _balances;
 
-    function totalSupply() public view returns(uint256) {
+    function totalSupply() public view returns (uint256) {
         return _totalSupply;
     }
 
-    function balanceOf(address account) public view returns(uint256) {
+    function balanceOf(address account) public view returns (uint256) {
         return _balances[account];
     }
 
@@ -590,10 +588,9 @@ contract LPTokenWrapper {
     }
 }
 
-
 contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
-
     IERC20 public snx = IERC20(0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F);
+    uint256 public constant DURATION = 7 days;
 
     uint256 public periodFinish = 0;
     uint256 public rewardRate = 0;
@@ -602,7 +599,7 @@ contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
 
-    event RewardAdded(uint256 reward, uint256 duration);
+    event RewardAdded(uint256 reward);
     event Staked(address indexed user, uint256 amount);
     event Withdrawn(address indexed user, uint256 amount);
     event RewardPaid(address indexed user, uint256 reward);
@@ -617,36 +614,45 @@ contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
         _;
     }
 
-    function lastTimeRewardApplicable() public view returns(uint256) {
+    function lastTimeRewardApplicable() public view returns (uint256) {
         return Math.min(block.timestamp, periodFinish);
     }
 
-    function rewardPerToken() public view returns(uint256) {
+    function rewardPerToken() public view returns (uint256) {
         if (totalSupply() == 0) {
             return rewardPerTokenStored;
         }
-        return rewardPerTokenStored.add(
-            lastTimeRewardApplicable().sub(lastUpdateTime).mul(rewardRate).mul(1e18).div(totalSupply())
-        );
+        return
+            rewardPerTokenStored.add(
+                lastTimeRewardApplicable()
+                    .sub(lastUpdateTime)
+                    .mul(rewardRate)
+                    .mul(1e18)
+                    .div(totalSupply())
+            );
     }
 
-    function earned(address account) public view returns(uint256) {
-        return balanceOf(account).mul(
-            rewardPerToken().sub(userRewardPerTokenPaid[account])
-        ).div(1e18).add(rewards[account]);
+    function earned(address account) public view returns (uint256) {
+        return
+            balanceOf(account)
+                .mul(rewardPerToken().sub(userRewardPerTokenPaid[account]))
+                .div(1e18)
+                .add(rewards[account]);
     }
 
     function stake(uint256 amount) public updateReward(msg.sender) {
+        require(amount > 0, "Cannot stake 0");
         super.stake(amount);
         emit Staked(msg.sender, amount);
     }
 
     function withdraw(uint256 amount) public updateReward(msg.sender) {
+        require(amount > 0, "Cannot withdraw 0");
         super.withdraw(amount);
         emit Withdrawn(msg.sender, amount);
     }
 
-    function exit() public {
+    function exit() external {
         withdraw(balanceOf(msg.sender));
         getReward();
     }
@@ -660,17 +666,20 @@ contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
         }
     }
 
-    // Duration is the time diff from (now  - when snx rewards will be mintable again) to handle slippage in minting
-    function notifyRewardAmount(uint256 reward, uint256 duration) external onlyRewardDistribution updateReward(address(0)) {
+    function notifyRewardAmount(uint256 reward)
+        external
+        onlyRewardDistribution
+        updateReward(address(0))
+    {
         if (block.timestamp >= periodFinish) {
-            rewardRate = reward.div(duration);
+            rewardRate = reward.div(DURATION);
         } else {
             uint256 remaining = periodFinish.sub(block.timestamp);
             uint256 leftover = remaining.mul(rewardRate);
-            rewardRate = reward.add(leftover).div(duration);
+            rewardRate = reward.add(leftover).div(DURATION);
         }
         lastUpdateTime = block.timestamp;
-        periodFinish = block.timestamp.add(duration);
-        emit RewardAdded(reward, duration);
+        periodFinish = block.timestamp.add(DURATION);
+        emit RewardAdded(reward);
     }
 }
