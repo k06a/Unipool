@@ -640,6 +640,7 @@ contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
                 .add(rewards[account]);
     }
 
+    // stake visibility is public as overriding LPTokenWrapper's stake() function
     function stake(uint256 amount) public updateReward(msg.sender) {
         require(amount > 0, "Cannot stake 0");
         super.stake(amount);
