@@ -38,6 +38,6 @@
     "lint": "npm run lint:js && npm run lint:sol",
     "lint:fix": "npm run lint:js:fix && npm run lint:sol:fix",
     "dist": "truffle-flattener ./contracts/Unipool.sol > Unipool.full.sol && solcjs --bin --abi --optimize Unipool.full.sol && mv Unipool_full_sol_Unipool.bin Unipool.full.bin && mv Unipool_full_sol_Unipool.abi Unipool.full.abi && rm *_sol_*",
-    "dist:curvepool": "truffle-flattener ./contracts/Curvepool.sol > Curvepool.full.sol && solcjs --bin --abi --optimize Curvepool.full.sol && mv Curvepool_full_sol_Curvepool.bin /deployments/Curvepool.full.bin && mv Curvepool_full_sol_Curvepool.abi /deployments/Curvepool.full.abi && rm *_sol_*"
+    "dist:curvepool": "truffle-flattener ./contracts/Curvepool.sol > Curvepool.full.sol && solcjs --bin --abi --optimize Curvepool.full.sol && mv Curvepool.full.sol ./deployments/Curvepool.full.sol && mv Curvepool_full_sol_Curvepool.bin ./deployments/Curvepool.full.bin && mv Curvepool_full_sol_Curvepool.abi ./deployments/Curvepool.full.abi && rm *_sol_*"
   }
 }
