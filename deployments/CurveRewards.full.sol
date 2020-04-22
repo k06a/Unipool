@@ -549,7 +549,7 @@ contract IRewardDistributionRecipient is Ownable {
     }
 }
 
-// File: contracts/Curvepool.sol
+// File: contracts/CurveRewards.sol
 
 pragma solidity ^0.5.0;
 
@@ -588,7 +588,7 @@ contract LPTokenWrapper {
     }
 }
 
-contract Curvepool is LPTokenWrapper, IRewardDistributionRecipient {
+contract CurveRewards is LPTokenWrapper, IRewardDistributionRecipient {
     IERC20 public snx = IERC20(0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F);
     uint256 public constant DURATION = 7 days;
 
