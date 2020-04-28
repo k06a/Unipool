@@ -4,7 +4,7 @@ import "@openzeppelin/contracts/ownership/Ownable.sol";
 
 
 contract IRewardDistributionRecipient is Ownable {
-    address rewardDistribution;
+    address public rewardDistribution;
 
     function notifyRewardAmount(uint256 reward) external;
 
