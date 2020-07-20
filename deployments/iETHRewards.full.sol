@@ -532,7 +532,7 @@ pragma solidity ^0.5.0;
 
 
 contract IRewardDistributionRecipient is Ownable {
-    address rewardDistribution;
+    address public rewardDistribution;
 
     function notifyRewardAmount(uint256 reward) external;
 
@@ -549,7 +549,7 @@ contract IRewardDistributionRecipient is Ownable {
     }
 }
 
-// File: contracts/Unipool.sol
+// File: contracts/iETHRewards.sol
 
 pragma solidity ^0.5.0;
 
@@ -562,7 +562,7 @@ contract LPTokenWrapper {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    IERC20 public uni = IERC20(0xe9Cf7887b93150D4F2Da7dFc6D502B216438F244);
+    IERC20 public token = IERC20(0xA9859874e1743A32409f75bB11549892138BBA1E);
 
     uint256 private _totalSupply;
     mapping(address => uint256) private _balances;
@@ -578,17 +578,17 @@ contract LPTokenWrapper {
     function stake(uint256 amount) public {
         _totalSupply = _totalSupply.add(amount);
         _balances[msg.sender] = _balances[msg.sender].add(amount);
-        uni.safeTransferFrom(msg.sender, address(this), amount);
+        token.safeTransferFrom(msg.sender, address(this), amount);
     }
 
     function withdraw(uint256 amount) public {
         _totalSupply = _totalSupply.sub(amount);
         _balances[msg.sender] = _balances[msg.sender].sub(amount);
-        uni.safeTransfer(msg.sender, amount);
+        token.safeTransfer(msg.sender, amount);
     }
 }
 
-contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
+contract iETHRewards is LPTokenWrapper, IRewardDistributionRecipient {
     IERC20 public snx = IERC20(0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F);
     uint256 public constant DURATION = 7 days;
 

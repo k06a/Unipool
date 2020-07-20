@@ -37,6 +37,8 @@
     "lint:sol:fix": "solium -d . --fix",
     "lint": "npm run lint:js && npm run lint:sol",
     "lint:fix": "npm run lint:js:fix && npm run lint:sol:fix",
-    "dist": "truffle-flattener ./contracts/Unipool.sol > Unipool.full.sol && solcjs --bin --abi --optimize Unipool.full.sol && mv Unipool_full_sol_Unipool.bin Unipool.full.bin && mv Unipool_full_sol_Unipool.abi Unipool.full.abi && rm *_sol_*"
+    "dist": "truffle-flattener ./contracts/Unipool.sol > Unipool.full.sol && solcjs --bin --abi --optimize Unipool.full.sol && mv Unipool_full_sol_Unipool.bin Unipool.full.bin && mv Unipool_full_sol_Unipool.abi Unipool.full.abi && rm *_sol_*",
+    "dist:CurveRewards": "truffle-flattener ./contracts/CurveRewards.sol > CurveRewards.full.sol && solcjs --bin --abi --optimize CurveRewards.full.sol && mv CurveRewards.full.sol ./deployments/CurveRewards.full.sol && mv CurveRewards_full_sol_CurveRewards.bin ./deployments/CurveRewards.full.bin && mv CurveRewards_full_sol_CurveRewards.abi ./deployments/CurveRewards.full.abi && rm *_sol_*",
+    "dist:iETHRewards": "truffle-flattener ./contracts/iETHRewards.sol > iETHRewards.full.sol && solcjs --bin --abi --optimize iETHRewards.full.sol && mv iETHRewards.full.sol ./deployments/iETHRewards.full.sol && mv iETHRewards_full_sol_iETHRewards.bin ./deployments/iETHRewards.full.bin && mv iETHRewards_full_sol_iETHRewards.abi ./deployments/iETHRewards.full.abi && rm *_sol_*"
   }
 }

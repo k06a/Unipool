@@ -549,7 +549,7 @@ contract IRewardDistributionRecipient is Ownable {
     }
 }
 
-// File: contracts/Unipool.sol
+// File: contracts/CurveRewards.sol
 
 pragma solidity ^0.5.0;
 
@@ -562,7 +562,7 @@ contract LPTokenWrapper {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    IERC20 public uni = IERC20(0xe9Cf7887b93150D4F2Da7dFc6D502B216438F244);
+    IERC20 public uni = IERC20(0xC25a3A3b969415c80451098fa907EC722572917F);
 
     uint256 private _totalSupply;
     mapping(address => uint256) private _balances;
@@ -588,7 +588,7 @@ contract LPTokenWrapper {
     }
 }
 
-contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
+contract CurveRewards is LPTokenWrapper, IRewardDistributionRecipient {
     IERC20 public snx = IERC20(0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F);
     uint256 public constant DURATION = 7 days;
 
