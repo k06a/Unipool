@@ -10,8 +10,8 @@ contract LPTokenWrapper {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    // APY-ETH Uniswap pool
-    IERC20 public uni = IERC20(0xF043c39A106db6B58C76995F30Ba35fD211c3b76);
+    // APY-USDC Balancer pool
+    IERC20 public uni = IERC20(0xbC8B1f78ff5a0baF9945E145832ad79C494d4CF6);
 
     uint256 private _totalSupply;
     mapping(address => uint256) private _balances;
@@ -37,7 +37,7 @@ contract LPTokenWrapper {
     }
 }
 
-contract Unipool is LPTokenWrapper, IRewardDistributionRecipient {
+contract Balpool is LPTokenWrapper, IRewardDistributionRecipient {
     IERC20 public apy = IERC20(0x95a4492F028aa1fd432Ea71146b433E7B4446611);
     uint256 public constant DURATION = 7 days;
 
