@@ -8,7 +8,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@openzeppelin/contracts": "^2.4.0"
+    "@openzeppelin/contracts": "^4.4.2"
   },
   "devDependencies": {
     "chai": "^4.2.0",
